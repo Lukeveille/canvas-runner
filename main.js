@@ -2,7 +2,9 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 let score;
+let scoreText;
 let highscore;
+let highscoreText;
 let player;
 let gravity;
 let obstacles = [];
@@ -12,10 +14,10 @@ let keys = [];
 // Event Listeners
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
-});
+})
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
-});
+})
 
 class Player {
   constructor(x, y, w, h, c) {
@@ -104,6 +106,26 @@ class Obstacle {
   }
 }
 
+class Text {
+  constructor(t, x, y, a, c, s) {
+    this.t = t;
+    this.x = x;
+    this.y = y;
+    this.a = a;
+    this.c = c;
+    this.s = s;
+  }
+
+  Draw() {
+    ctx.beginPath();
+    ctx.fillStyle = this.c;
+    ctx.font = this.s + "px sans-serif";
+    ctx.textAlign = this.a;
+    ctx.fillText(this.t, this.x, this.y);
+    ctx.closePath();
+  }
+}
+
 // Game functions
 function SpawnObstacle() {
   let size = RandomIntInRange(20, 70);
@@ -131,9 +153,15 @@ function Start() {
 
   score = 0;
   highscore = 0;
+  if (localStorage.getItem('highscore')) {
+    highscore = localStorage.getItem('highscore');
+  }
 
   player = new Player(25, canvas.height - 150, 50, 50, '#c00');
-  player.Draw();
+
+  scoreText = new Text("Score: " + score, 25, 25, 'left', '#222', 20);
+
+  highscoreText = new Text("Highscore: " + highscore, canvas.width - 25, 25, 'right', '#222', 20);
 
   requestAnimationFrame(Update);
 }
@@ -147,7 +175,6 @@ function Update() {
   spawnTimer--;
   if (spawnTimer <= 0) {
     SpawnObstacle();
-    console.log(obstacles)
     spawnTimer = initialSpawnTimer - gameSpeed * 8;
     
     if (spawnTimer < 60) {
@@ -159,10 +186,40 @@ function Update() {
   for (let i = 0; i < obstacles.length; i++) {
     let o = obstacles[i];
 
+    if (o.x + o.width < 0) {
+      obstacles.splice(i, 1);
+    }
+
+    if (
+      player.x < o.x + o.w &&
+      player.x + player.w > o.x &&
+      player.y < o.y + o.h &&
+      player.y + player.h > o.y
+    ) {
+      obstacles = [];
+      score = 0;
+      spawnTimer = initialSpawnTimer;
+      gameSpeed = 3;
+      window.localStorage.setItem('highscore', highscore);
+    }
+
     o.Update();
   }
 
   player.Animate();
+
+  score++;
+  scoreText.t = 'Score: ' + score;
+  scoreText.Draw();
+  
+  if (score > highscore) {
+    highscore = score;
+    highscoreText.t = 'Highscore: ' + highscore
+  }
+
+  highscoreText.Draw();
+
+  gameSpeed += 0.003;
 }
 
 Start();
